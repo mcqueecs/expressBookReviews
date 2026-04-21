@@ -3,11 +3,12 @@ let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
+const axios = require("axios");
 
 
 public_users.post("/register", (req,res) => {
-    let username = req.body.username;
-    let password = req.body.password;
+    let username = req.query.username;
+    let password = req.query.password;
     if(username && password){
         if(isValid(username)){
             users.push({username:username,password:password});
@@ -103,13 +104,21 @@ public_users.get('/title/:title',async function (req, res) {
   }});
 
 //  Get book review
-public_users.get('/review/:isbn',function (req, res) {
+public_users.get('/review/:isbn',async function (req, res) {
     let isbn = req.params.isbn;
-    if(books[isbn]){
-        return res.status(200).send(JSON.stringify(books[isbn].reviews, null, 4));
-    }
-    else{
-        return res.status(400).send("No book found with ISBN "+isbn);
+  
+    try {
+      const response = await axios.get('http://localhost:5000/books');
+  
+      if (response.data[isbn]) {
+        return res.status(200).send(JSON.stringify(response.data[isbn].reviews, null, 4));
+      } else {
+        return res.status(404).send("No book found with ISBN " + isbn);
+      }
+    } catch (error) {
+      // Handle errors, e.g., network issues or API errors
+      console.error(error);
+      return res.status(500).send("Internal Server Error");
     }
   });
 
